@@ -1,15 +1,45 @@
+import time
 import pika
+import threading
+from random import randrange
 
 
-# def callback():
-#   pass
+def producer(channel: pika.adapters.blocking_connection.BlockingChannel):
+  i = 1
+  while True:
+    time.sleep(1)
+    channel.basic_publish(exchange='multicast', routing_key=' ', body='What!? %d' % i)
+    i = i + 1
 
 
-if __name__ == '__main__':
+def consume_message(ch, method, properties, body):
+  print(body.decode('utf-8'))
+
+
+def setup_channel(connection: pika.adapters.blocking_connection.BlockingConnection):
   connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
   channel: pika.adapters.blocking_connection.BlockingChannel = connection.channel()
   channel.exchange_declare(exchange='multicast', exchange_type='fanout')
-  result = channel.queue_declare(queue='my_queue')
-  channel.queue_bind(exchange='multicast', queue='my_queue')
+  queue_name = ''
+  print(queue_name)
+  channel.queue_declare(queue=queue_name)
+  channel.queue_bind(exchange='multicast', queue=queue_name)
+  return channel, queue_name
 
-  channel.basic_publish(exchange='multicast', body='foo', routing_key=' ')
+
+def setup_produce_channel(connection: pika.adapters.blocking_connection.BlockingConnection):
+  (channel, queue_name) = setup_channel(connection)
+  return channel
+
+
+def setup_consumer_channel(connection: pika.adapters.blocking_connection.BlockingConnection):
+  (channel, queue_name) = setup_channel(connection)
+  channel.basic_consume(on_message_callback=consume_message, queue=queue_name, auto_ack=True)
+  return channel
+
+
+if __name__ == '__main__':
+  # connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+  connection = None
+  threading.Thread(target=producer, args=(setup_produce_channel(connection),)).start()
+  setup_consumer_channel(connection).start_consuming()
