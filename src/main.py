@@ -16,7 +16,7 @@ def consume_message(ch, method, properties, body):
   print(body.decode('utf-8'))
 
 
-def setup_channel(connection: pika.adapters.blocking_connection.BlockingConnection):
+def setup_channel():
   connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
   channel: pika.adapters.blocking_connection.BlockingChannel = connection.channel()
   channel.exchange_declare(exchange='multicast', exchange_type='fanout')
@@ -27,19 +27,18 @@ def setup_channel(connection: pika.adapters.blocking_connection.BlockingConnecti
   return channel, queue_name
 
 
-def setup_produce_channel(connection: pika.adapters.blocking_connection.BlockingConnection):
-  (channel, queue_name) = setup_channel(connection)
+def setup_produce_channel():
+  (channel, queue_name) = setup_channel()
   return channel
 
 
-def setup_consumer_channel(connection: pika.adapters.blocking_connection.BlockingConnection):
-  (channel, queue_name) = setup_channel(connection)
+def setup_consumer_channel():
+  (channel, queue_name) = setup_channel()
   channel.basic_consume(on_message_callback=consume_message, queue=queue_name, auto_ack=True)
   return channel
 
 
 if __name__ == '__main__':
-  # connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
   connection = None
-  threading.Thread(target=producer, args=(setup_produce_channel(connection),)).start()
-  setup_consumer_channel(connection).start_consuming()
+  threading.Thread(target=producer, args=(setup_produce_channel(),)).start()
+  setup_consumer_channel().start_consuming()
