@@ -27,7 +27,10 @@ def compare(msg_comparable_wrapper_1, msg_comparable_wrapper_2):
     return 1
   if np.all(vector1 < vector2):
     return -1
-  return np.argmax(np.absolute(vector1 - vector2))
+  # Don't think too much. It's just one of possible ways to provide well-order relation
+  # on top of vector clocks which by default support partial order relation
+  index = np.argmax(np.absolute(vector1 - vector2))
+  return vector1[index] - vector2[index]
 
 
 class MsgComparableWrapper:
