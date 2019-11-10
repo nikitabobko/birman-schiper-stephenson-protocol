@@ -15,7 +15,11 @@ Install requirements:
 ```
 pip install -r requirements.txt
 ```
-Run:
+Run several N - 1 clients by:
 ```
-python src/main.py
+./add_client.bash
+```
+Run N-th client which will start session by:
+```
+./start.bash
 ```
