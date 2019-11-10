@@ -3,17 +3,13 @@
 This is Birman-Schiper-Stephenson protocol study implementation on top of RabbitMQ. 
 
 ### How to run locally
-Create Python 3 virtual environment:
+Create Python 3 virtual environment, and install requirements:
 ```
-python3 -m venv venv
+./setup.bash
 ```
-Activate virtual environment:
+Activate environment:
 ```
 source env/bin/activate
-```
-Install requirements:
-```
-pip install -r requirements.txt
 ```
 Run several N - 1 clients by:
 ```
