@@ -3,6 +3,7 @@ import pika
 import threading
 import json
 import sys
+import random
 import numpy as np
 from random import randrange
 from queue import PriorityQueue
@@ -73,7 +74,7 @@ def decode_packet(packet):
 def producer(channel: pika.adapters.blocking_connection.BlockingChannel):
   i = 1
   while True:
-    sleep_time_secs = randrange(1, 11)
+    sleep_time_secs = randrange(1, 5)
     log(f"Producer sleeps for {sleep_time_secs} secs")
     time.sleep(sleep_time_secs)
     with mutex:
@@ -97,6 +98,7 @@ def start_producer_async_if_not_started_yet():
 
 def msg_delivered(msg):
   print("MSG delivered ------->", msg[MSG_JSON_KEY])
+  print()
 
 
 def normalize_clocks(clock1, clock2):
@@ -114,31 +116,45 @@ def deliver_msg(msg):
   msg_delivered(msg)
 
 
+delayed = []
+
+
 def consume_packet(ch, method, properties, body):
-  start_producer_async_if_not_started_yet()
+  # start_producer_async_if_not_started_yet()
   with mutex:
     msg = decode_packet(body)
-    log(f"Consumed msg: {msg}")
-    log(f"Approximate queue size: {my_queue.qsize()}")
-    sender_id = msg[SENDER_ID_JSON_KEY]
-    if sender_id == client_id:
-      # skip messages send by me because them are delivered in producer
-      log("Skipping own message. Already delivered")
-      return
-    my_queue.put(MsgComparableWrapper(msg))
-    while not my_queue.empty():
-      msg = my_queue.get().msg
-      sender_id = msg[SENDER_ID_JSON_KEY]
-      msg_vector_clock = msg[VECTOR_CLOCK_JSON_KEY]
-      global vector_clock
-      vector_clock, msg_vector_clock = normalize_clocks(vector_clock, msg_vector_clock)
-      tmp_vector_clock = vector_clock.copy()
-      tmp_vector_clock[sender_id] = tmp_vector_clock[sender_id] + 1
-      if tmp_vector_clock[sender_id] == msg_vector_clock[sender_id] and np.all(tmp_vector_clock >= msg_vector_clock):
-        deliver_msg(msg)
-      else:
-        my_queue.put(MsgComparableWrapper(msg))
+    global delayed
+    while True:
+      log(f"Consumed msg: {msg}")
+      log(f"Approximate queue size: {my_queue.qsize()}")
+      if len(delayed) <= 1 and bool(random.getrandbits(1)):
+        delayed += [msg]
         break
+      sender_id = msg[SENDER_ID_JSON_KEY]
+      print("Received", msg)
+      if sender_id == client_id:
+        # skip messages send by me because them are delivered in producer
+        log("Skipping own message. Already delivered")
+        return
+      my_queue.put(MsgComparableWrapper(msg))
+      while not my_queue.empty():
+        msg = my_queue.get().msg
+        sender_id = msg[SENDER_ID_JSON_KEY]
+        msg_vector_clock = msg[VECTOR_CLOCK_JSON_KEY]
+        global vector_clock
+        vector_clock, msg_vector_clock = normalize_clocks(vector_clock, msg_vector_clock)
+        tmp_vector_clock = vector_clock.copy()
+        tmp_vector_clock[sender_id] = tmp_vector_clock[sender_id] + 1
+        if tmp_vector_clock[sender_id] == msg_vector_clock[sender_id] and np.all(tmp_vector_clock >= msg_vector_clock):
+          deliver_msg(msg)
+        else:
+          my_queue.put(MsgComparableWrapper(msg))
+          break
+      if len(delayed) != 0 and bool(random.getrandbits(1)):
+        random.shuffle(delayed)
+        msg = delayed.pop()
+        continue
+      break
 
 
 def setup_channel(consumer: bool):
