@@ -128,6 +128,7 @@ def consume_packet(ch, method, properties, body):
     my_queue.put(MsgComparableWrapper(msg))
     while not my_queue.empty():
       msg = my_queue.get().msg
+      sender_id = msg[SENDER_ID_JSON_KEY]
       msg_vector_clock = msg[VECTOR_CLOCK_JSON_KEY]
       global vector_clock
       vector_clock, msg_vector_clock = normalize_clocks(vector_clock, msg_vector_clock)
