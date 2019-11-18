@@ -137,6 +137,7 @@ def consume_packet(ch, method, properties, body):
       if tmp_vector_clock[sender_id] == msg_vector_clock[sender_id] and np.all(tmp_vector_clock >= msg_vector_clock):
         deliver_msg(msg)
       else:
+        my_queue.put(MsgComparableWrapper(msg))
         break
 
 
