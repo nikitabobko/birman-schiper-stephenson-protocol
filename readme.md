@@ -13,7 +13,7 @@ Activate environment:
 ```
 source env/bin/activate
 ```
-Run N - 1 clients by:
+Run first N - 1 clients by:
 ```
 ./add_client.bash
 ```
